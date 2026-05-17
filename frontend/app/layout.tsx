@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -30,7 +30,11 @@ export const metadata: Metadata = {
     title: "TripMind — AI-Powered Travel Itinerary Planner",
     description: "Plan your perfect trip in minutes with TripMind.",
   },
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
   themeColor: "#0f172a",
 };
 

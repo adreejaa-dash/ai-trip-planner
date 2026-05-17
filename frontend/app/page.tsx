@@ -4,6 +4,7 @@ import { ArrowRight, Sparkles, Globe, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { RevealSection } from "@/components/ui/RevealSection";
 import { LANDING_FEATURES, LANDING_STATS, FEATURED_DESTINATIONS } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -89,8 +90,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── How It Works ──────────────────────────────────── */}
-      <section className="py-20 sm:py-28 container max-w-6xl">
+      {/* ─── How It Works ──────────────────────────────────────── */}
+      <RevealSection className="py-20 sm:py-28 container max-w-6xl">
         <div className="text-center mb-14">
           <Badge variant="brand" className="mb-4">How It Works</Badge>
           <h2 className="font-display text-3xl sm:text-4xl font-bold mb-4">
@@ -141,10 +142,10 @@ export default function LandingPage() {
             </Card>
           ))}
         </div>
-      </section>
+      </RevealSection>
 
       {/* ─── Features Grid ────────────────────────────────── */}
-      <section className="py-20 sm:py-28 bg-card/30 border-y border-border/50">
+      <RevealSection className="py-20 sm:py-28 bg-card/30 border-y border-border/50">
         <div className="container max-w-6xl">
           <div className="text-center mb-14">
             <Badge variant="emerald" className="mb-4">Features</Badge>
@@ -173,10 +174,10 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-      </section>
+      </RevealSection>
 
       {/* ─── Featured Destinations ────────────────────────── */}
-      <section className="py-20 sm:py-28 container max-w-6xl">
+      <RevealSection className="py-20 sm:py-28 container max-w-6xl">
         <div className="text-center mb-14">
           <Badge variant="amber" className="mb-4">Popular Now</Badge>
           <h2 className="font-display text-3xl sm:text-4xl font-bold mb-4">
@@ -213,7 +214,7 @@ export default function LandingPage() {
             </Link>
           ))}
         </div>
-      </section>
+      </RevealSection>
 
       {/* ─── CTA Banner ───────────────────────────────────── */}
       <section className="py-20 sm:py-28 container max-w-4xl">

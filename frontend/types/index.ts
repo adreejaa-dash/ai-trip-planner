@@ -196,3 +196,53 @@ export interface NavItem {
   icon?: string;
   badge?: string;
 }
+
+// ─── Chat ────────────────────────────────────────────────────
+
+export type ChatRole = "user" | "assistant";
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  timestamp: string;  // ISO datetime
+  isTyping?: boolean;
+}
+
+export interface ChatSuggestion {
+  id: string;
+  label: string;
+  prompt: string;
+}
+
+// ─── Budget ──────────────────────────────────────────────────
+
+export interface BudgetCategory {
+  label: string;
+  icon: string;
+  amount: number;
+  currency: string;
+  percentage: number;
+  color: string;  // Tailwind color class fragment e.g. "brand"
+}
+
+export interface BudgetBreakdownData {
+  total: number;
+  currency: string;
+  perPerson: number;
+  perDay: number;
+  categories: BudgetCategory[];
+  numTravelers: number;
+  numDays: number;
+}
+
+// ─── Itinerary UI ─────────────────────────────────────────────
+
+export type ItineraryTab = "itinerary" | "budget" | "map";
+
+export interface ItineraryUIState {
+  activeTab: ItineraryTab;
+  activeDayIndex: number;
+  chatOpen: boolean;
+  isLoaded: boolean;
+}

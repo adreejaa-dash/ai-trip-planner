@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MapPin, Compass, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useScrolled } from "@/hooks/useScrolled";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -15,10 +16,16 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const scrolled = useScrolled(10);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-background/80 backdrop-blur-xl">
+    <header className={cn(
+      "fixed top-0 z-50 w-full border-b backdrop-blur-xl transition-all duration-300",
+      scrolled
+        ? "border-white/10 bg-background/95 shadow-lg shadow-black/20"
+        : "border-white/5 bg-background/80"
+    )}>
       <div className="container flex h-16 max-w-7xl items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">

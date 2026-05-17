@@ -124,7 +124,7 @@ function Step1({ form, errors, setField }: ReturnType<typeof useTripPlannerForm>
 
         <div className="space-y-2">
           <Label htmlFor="travelers">Number of Travelers *</Label>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-6 gap-2">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
@@ -141,6 +141,20 @@ function Step1({ form, errors, setField }: ReturnType<typeof useTripPlannerForm>
                 <span className="text-xs font-medium">{n}</span>
               </button>
             ))}
+            {/* 6+ button to reveal extended picker */}
+            <button
+              type="button"
+              onClick={() => setField("numTravelers", 6)}
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-xl border p-3 text-sm transition-all duration-200",
+                form.numTravelers > 5
+                  ? "border-brand-500 bg-brand-500/15 text-brand-300"
+                  : "border-border bg-secondary/30 text-muted-foreground hover:border-white/20 hover:bg-secondary/60"
+              )}
+            >
+              <Users className="h-4 w-4" />
+              <span className="text-xs font-medium">6+</span>
+            </button>
           </div>
           {form.numTravelers > 5 && (
             <div className="space-y-2 mt-2">
@@ -151,7 +165,7 @@ function Step1({ form, errors, setField }: ReturnType<typeof useTripPlannerForm>
                 value={form.numTravelers}
                 onChange={(e) => setField("numTravelers", parseInt(e.target.value))}
               >
-                {TRAVELER_OPTIONS.map((o) => (
+                {TRAVELER_OPTIONS.filter((o) => o.value >= 6).map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>

@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment
+.env
+*.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Alembic
+# (keep alembic/versions in git but ignore local overrides)
+
+# ChromaDB data
+chroma_data/
+
+# Distribution
+dist/
+build/
+*.egg-info/

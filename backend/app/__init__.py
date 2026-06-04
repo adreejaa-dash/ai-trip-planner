@@ -1,0 +1,3 @@
+"""
+TripMind backend package.
+"""

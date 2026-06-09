@@ -7,7 +7,7 @@ Key differences from the default env.py:
   3. Imports all models so autogenerate can detect schema changes
 """
 
-import asyncio
+import asyncio                 
 from logging.config import fileConfig
 
 from alembic import context

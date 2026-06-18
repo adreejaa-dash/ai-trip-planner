@@ -7,7 +7,7 @@ src = ["app", "tests"]
 select = [
   "E",   # pycodestyle errors
   "W",   # pycodestyle warnings
-  "F",   # pyflakes
+  "F",   # pyflakes   
   "I",   # isort
   "B",   # flake8-bugbear
   "UP",  # pyupgrade

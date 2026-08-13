@@ -1,14 +1,15 @@
 """
 Health check router.
 
-GET /health  → lightweight liveness probe (no DB dependency)
-GET /health/db → readiness probe (verifies DB connection)
+GET /health    → liveness probe (no DB dependency — always 200)
+GET /health/db → readiness probe (checks DB, returns 503 if down)
 """
 
 import time
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import ORJSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,8 +26,8 @@ async def health_check(
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
     """
-    Returns a 200 OK response confirming the API process is alive.
-    Does NOT check the database — use /health/db for that.
+    Always returns 200 — confirms the API process is alive.
+    Does NOT touch the database.
     """
     return {
         "status": "ok",
@@ -36,13 +37,11 @@ async def health_check(
     }
 
 
-@router.get("/health/db", summary="Readiness probe (DB)")
-async def health_db(
-    db: AsyncSession = Depends(get_db),
-) -> dict[str, Any]:
+@router.get("/health/db", summary="Readiness probe (database)")
+async def health_db(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
     """
-    Executes a lightweight SELECT 1 query.
-    Returns 200 if the DB is reachable, 503 if not (raised by dependency).
+    Returns 200 if PostgreSQL is reachable, 503 if not.
+    The 503 is raised automatically by get_db() when the connection fails.
     """
     await db.execute(text("SELECT 1"))
     return {"status": "ok", "database": "connected"}

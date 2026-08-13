@@ -1,41 +1,29 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: {
-    default: "TripMind — AI-Powered Travel Itinerary Planner",
-    template: "%s | TripMind",
-  },
+  title: "TripPlanner — AI-Powered Travel Itinerary Planner",
   description:
-    "Plan your perfect trip in minutes with TripMind's AI travel planner. Get personalized day-by-day itineraries, budget estimates, and local tips for any destination.",
-  keywords: [
-    "AI travel planner",
-    "itinerary generator",
-    "trip planning",
-    "travel assistant",
-    "vacation planner",
-  ],
-  authors: [{ name: "TripMind" }],
+    "Generate personalized, day-wise travel itineraries based on your destination, budget, and interests. Powered by Google Gemini AI.",
+  keywords: "AI trip planner, travel itinerary, Gemini AI, travel planner, budget travel",
   openGraph: {
+    title: "TripPlanner — AI-Powered Travel Itinerary Planner",
+    description: "Generate personalized travel itineraries with AI in seconds.",
     type: "website",
-    title: "TripMind — AI-Powered Travel Itinerary Planner",
-    description:
-      "Plan your perfect trip in minutes with TripMind's AI travel planner.",
-    siteName: "TripMind",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "TripMind — AI-Powered Travel Itinerary Planner",
-    description: "Plan your perfect trip in minutes with TripMind.",
-  },
-};
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: "#0f172a",
 };
 
 export default function RootLayout({
@@ -44,16 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body className="min-h-screen bg-background antialiased">
-        <Navbar />
-        <main className="min-h-screen">{children}</main>
-        <Footer />
-      </body>
+    <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }

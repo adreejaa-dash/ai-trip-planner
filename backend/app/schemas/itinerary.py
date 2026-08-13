@@ -1,113 +1,112 @@
 """
-Pydantic schemas for the Itinerary resource.
-
-Separates request payloads (ItineraryCreate) from ORM read models (ItineraryRead)
-and update payloads (ItineraryUpdate). All schemas use model_config for ORM mode.
+Pydantic v2 schemas for trip generation, retrieval, and refinement.
 """
 
-from datetime import datetime
-from typing import Any
-from uuid import UUID
+from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, Field
 
 
-# ── Nested schemas ─────────────────────────────────────────────────────────────
+# ── Request schemas ───────────────────────────────────────────────────────────
 
-class DestinationIn(BaseModel):
-    """Destination details provided by the user at planning time."""
-
-    city: str = Field(..., min_length=1, max_length=200, examples=["Tokyo"])
-    country: str = Field(..., min_length=1, max_length=200, examples=["Japan"])
-    region: str | None = Field(None, examples=["Kantō"])
-
-
-class TravelPreferencesIn(BaseModel):
-    """User travel preferences for itinerary generation."""
-
-    budget_level: str = Field(
-        "moderate",
-        pattern="^(budget|moderate|premium|luxury)$",
-        description="One of: budget, moderate, premium, luxury",
-    )
-    styles: list[str] = Field(
-        default_factory=list,
-        examples=[["culture", "food", "nature"]],
-    )
-    accommodation: list[str] = Field(default_factory=list)
-    currency: str = Field("USD", min_length=3, max_length=3)
-    additional_notes: str | None = None
+class TripGenerateRequest(BaseModel):
+    destination: str = Field(..., min_length=2, max_length=255, examples=["Bhubaneswar"])
+    duration: int = Field(..., ge=1, le=30, examples=[3])
+    budget: float = Field(..., gt=0, examples=[10000])
+    currency: str = Field(default="INR", max_length=10, examples=["INR"])
+    interests: list[str] = Field(..., min_length=1, examples=[["history", "food", "culture"]])
 
 
-# ── Request schemas ────────────────────────────────────────────────────────────
-
-class ItineraryCreate(BaseModel):
-    """
-    Payload to create a new itinerary generation request.
-    The AI generation is async — the itinerary status starts as 'pending'.
-    """
-
-    destination: DestinationIn
-    start_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", examples=["2025-03-01"])
-    end_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", examples=["2025-03-08"])
-    num_travelers: int = Field(1, ge=1, le=50)
-    preferences: TravelPreferencesIn = Field(default_factory=TravelPreferencesIn)
-
-    @field_validator("end_date")
-    @classmethod
-    def end_after_start(cls, v: str, info: Any) -> str:
-        start = info.data.get("start_date")
-        if start and v <= start:
-            raise ValueError("end_date must be after start_date")
-        return v
+class TripRefineRequest(BaseModel):
+    instruction: str = Field(..., min_length=1, max_length=1000, examples=["Add more food experiences"])
 
 
-class ItineraryUpdate(BaseModel):
-    """
-    Partial update payload. All fields optional.
-    Used when a user asks the AI to refine part of the itinerary.
-    """
+# ── Gemini response validation schemas ────────────────────────────────────────
 
-    days: list[dict[str, Any]] | None = None
-    summary: dict[str, Any] | None = None
-    status: str | None = Field(None, pattern="^(pending|generating|complete|failed)$")
+class GeminiActivity(BaseModel):
+    time: str
+    place: str
+    activity: str
+    description: str
+    estimated_cost: float = 0
+
+    model_config = {"extra": "ignore"}
 
 
-# ── Response schemas ───────────────────────────────────────────────────────────
+class GeminiDayPlan(BaseModel):
+    day: int
+    title: str
+    activities: list[GeminiActivity]
 
-class ItineraryRead(BaseModel):
-    """
-    Full itinerary response — matches the Itinerary ORM model.
-    """
+    model_config = {"extra": "ignore"}
 
-    model_config = ConfigDict(from_attributes=True)
 
-    id: UUID
-    user_id: UUID | None
+class GeminiBudgetBreakdown(BaseModel):
+    accommodation: float = 0
+    food: float = 0
+    transportation: float = 0
+    activities: float = 0
+    miscellaneous: float = 0
+    total: float = 0
+
+    model_config = {"extra": "ignore"}
+
+
+class GeminiItinerary(BaseModel):
     destination: str
-    country: str
-    start_date: str
-    end_date: str
-    num_travelers: int
-    budget_level: str
-    travel_styles: list[str]
-    days: list[dict[str, Any]]
-    summary: dict[str, Any]
-    status: str
-    created_at: datetime
-    updated_at: datetime
+    summary: str
+    budget_breakdown: GeminiBudgetBreakdown
+    days: list[GeminiDayPlan]
+    travel_tips: list[str] = Field(default_factory=list)
+
+    model_config = {"extra": "ignore"}
 
 
-class ItineraryListItem(BaseModel):
-    """Lightweight itinerary entry for list endpoints."""
+# ── API response schemas ──────────────────────────────────────────────────────
 
-    model_config = ConfigDict(from_attributes=True)
+class ActivityResponse(BaseModel):
+    time: str
+    place: str
+    activity: str
+    description: str
+    estimated_cost: float
 
-    id: UUID
+
+class DayPlanResponse(BaseModel):
+    day: int
+    title: str
+    activities: list[ActivityResponse]
+
+
+class BudgetBreakdownResponse(BaseModel):
+    accommodation: float
+    food: float
+    transportation: float
+    activities: float
+    miscellaneous: float
+    total: float
+
+
+class TripResponse(BaseModel):
+    id: str
     destination: str
-    country: str
-    start_date: str
-    end_date: str
-    num_travelers: int
-    status: str
-    created_at: datetime
+    duration: int
+    budget: float
+    currency: str
+    interests: list[str]
+    summary: str | None = None
+    budget_breakdown: BudgetBreakdownResponse | None = None
+    days: list[DayPlanResponse] = Field(default_factory=list)
+    travel_tips: list[str] = Field(default_factory=list)
+    created_at: str | None = None
+
+
+class TripListItem(BaseModel):
+    id: str
+    destination: str
+    duration: int
+    budget: float
+    currency: str
+    interests: list[str]
+    summary: str | None = None
+    created_at: str | None = None

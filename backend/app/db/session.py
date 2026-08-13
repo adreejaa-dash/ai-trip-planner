@@ -1,13 +1,16 @@
 """
 Async SQLAlchemy engine and session factory.
 
-Usage in a FastAPI dependency:
-    async with get_db() as db:
-        result = await db.execute(...)
+The engine is created lazily — no network connection is made until the
+first query. This means import-time and app-factory-time are always safe.
+
+If the DB is down, get_db() raises a 503 HTTPException so the route
+returns a structured error instead of a 500 traceback.
 """
 
 from collections.abc import AsyncGenerator
 
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -16,22 +19,24 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import settings
 
-# ── Engine ────────────────────────────────────────────────────────────────────
+# ── Engine (lazy — no connection made here) ───────────────────────────────────
 
-engine = create_async_engine(
-    settings.database_url,
-    echo=settings.debug,          # Log SQL in debug mode
-    pool_pre_ping=True,           # Detect stale connections before use
-    pool_size=10,
-    max_overflow=20,
-)
+def _make_engine():
+    """Create engine with settings appropriate for the dialect."""
+    is_sqlite = settings.database_url.startswith("sqlite")
+    kwargs: dict = {"echo": settings.debug}
+    if not is_sqlite:
+        kwargs.update({"pool_pre_ping": True, "pool_size": 10, "max_overflow": 20})
+    return create_async_engine(settings.database_url, **kwargs)
+
+engine = _make_engine()
 
 # ── Session factory ───────────────────────────────────────────────────────────
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
-    expire_on_commit=False,       # Don't expire objects after commit
+    expire_on_commit=False,
     autocommit=False,
     autoflush=False,
 )
@@ -41,17 +46,29 @@ AsyncSessionLocal = async_sessionmaker(
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
-    Yields an async database session and ensures it is closed after the request.
-    Use as a FastAPI dependency:
+    Yields an async database session.
 
-        db: AsyncSession = Depends(get_db)
+    - Commits on success, rolls back on exception.
+    - If the DB is unreachable, returns HTTP 503 Service Unavailable
+      instead of letting an asyncpg ConnectionRefusedError propagate as 500.
     """
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    try:
+        async with AsyncSessionLocal() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
+    except HTTPException:
+        raise  # Already structured — let it through
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Database is currently unavailable. "
+                "Please ensure PostgreSQL is running and try again."
+            ),
+        ) from exc

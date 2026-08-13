@@ -1,0 +1,5 @@
+"""
+Alembic script.py.mako template.
+"""
+
+Generic single-database configuration with an async dbapi.

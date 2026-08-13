@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { generateTrip } from "@/lib/api";
@@ -33,6 +33,38 @@ export default function PlanPage() {
   const [interests, setInterests] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Autocomplete state
+  const [destQuery, setDestQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<Array<{ id: number; name: string; admin1?: string; country?: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    if (destQuery.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destQuery)}&count=5&language=en`);
+        const data = await res.json();
+        if (data.results) {
+          setSuggestions(data.results);
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [destQuery]);
 
   const toggleInterest = (id: string) => {
     setInterests((prev) =>
@@ -217,7 +249,7 @@ export default function PlanPage() {
             style={{ display: "flex", flexDirection: "column", gap: "1.75rem" }}
           >
             {/* Destination */}
-            <div>
+            <div style={{ position: "relative" }}>
               <label
                 style={{
                   display: "block",
@@ -235,8 +267,65 @@ export default function PlanPage() {
                 className="input-field"
                 placeholder="e.g. Bhubaneswar, Paris, Tokyo..."
                 value={destination}
-                onChange={(e) => setDestination(e.target.value)}
+                onChange={(e) => {
+                  setDestination(e.target.value);
+                  setDestQuery(e.target.value);
+                }}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true);
+                }}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               />
+              {showSuggestions && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--radius-md)",
+                    marginTop: "0.25rem",
+                    zIndex: 50,
+                    maxHeight: 250,
+                    overflowY: "auto",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  {isSearching ? (
+                    <div style={{ padding: "0.75rem", fontSize: "0.875rem", color: "var(--muted)" }}>Loading...</div>
+                  ) : suggestions.length === 0 ? (
+                    <div style={{ padding: "0.75rem", fontSize: "0.875rem", color: "var(--muted)" }}>No results found</div>
+                  ) : (
+                    suggestions.map((s) => (
+                      <div
+                        key={s.id}
+                        style={{
+                          padding: "0.75rem",
+                          cursor: "pointer",
+                          fontSize: "0.875rem",
+                          borderBottom: "1px solid var(--border)",
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          const locName = [s.name, s.admin1, s.country].filter(Boolean).join(", ");
+                          setDestination(locName);
+                          setDestQuery("");
+                          setShowSuggestions(false);
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-3)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <div style={{ fontWeight: 600, color: "var(--foreground)" }}>{s.name}</div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--muted)" }}>
+                          {[s.admin1, s.country].filter(Boolean).join(", ")}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Duration + Budget row */}
@@ -303,11 +392,12 @@ export default function PlanPage() {
                     id="budget"
                     type="number"
                     className="input-field"
-                    min={1}
+                    min={1000}
+                    step={1000}
                     placeholder="10000"
                     value={budget}
                     onChange={(e) =>
-                      setBudget(Math.max(0, parseFloat(e.target.value) || 0))
+                      setBudget(Math.max(1000, parseFloat(e.target.value) || 1000))
                     }
                   />
                 </div>

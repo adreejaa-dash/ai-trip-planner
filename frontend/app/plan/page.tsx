@@ -83,7 +83,7 @@ export default function PlanPage() {
     interests.length >= 1;
 
   const handleSubmit = async () => {
-    if (!isValid) return;
+    if (!isValid || submitting) return;
     setSubmitting(true);
     setError(null);
     try {

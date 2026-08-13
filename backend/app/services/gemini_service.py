@@ -70,43 +70,6 @@ CRITICAL RULES:
 9. Do NOT repeat the same attraction across different days.
 10. Provide practical, actionable descriptions for each activity.
 
-Respond ONLY with a valid JSON object (no markdown fences, no extra text) using this EXACT schema:
-
-{{
-  "destination": "{destination}",
-  "summary": "2-3 sentence overview of the trip highlighting what makes {destination} special",
-  "budget_breakdown": {{
-    "accommodation": <number>,
-    "food": <number>,
-    "transportation": <number>,
-    "activities": <number>,
-    "miscellaneous": <number>,
-    "total": <number that must be <= {budget}>
-  }},
-  "days": [
-    {{
-      "day": 1,
-      "title": "Short evocative day title",
-      "activities": [
-        {{
-          "time": "09:00 AM",
-          "place": "Specific real place name",
-          "activity": "What to do there",
-          "description": "2-3 sentences with practical details",
-          "estimated_cost": <number in {currency}>
-        }}
-      ]
-    }}
-  ],
-  "travel_tips": [
-    "Specific, practical tip about {destination}",
-    "Tip about local transport",
-    "Tip about food/cuisine",
-    "Tip about best times to visit attractions",
-    "Tip about local customs or useful info"
-  ]
-}}
-
 Generate exactly {duration} days. Be honest and realistic — quality over quantity."""
 
 
@@ -127,15 +90,12 @@ EXISTING ITINERARY:
 USER'S MODIFICATION REQUEST:
 "{instruction}"
 
-RULES:
 1. Modify ONLY what the user requested. Preserve everything else.
 2. Keep the same destination and number of days unless the user explicitly asks to change them.
 3. Keep the total budget under {currency_symbol}{budget:,.0f} ({currency}).
 4. All costs must be in {currency}.
 5. Use real place names — do NOT invent fictional locations.
-6. Return the COMPLETE updated itinerary in the exact same JSON schema as the original.
-
-Respond ONLY with a valid JSON object (no markdown fences, no extra text) using the same schema as the existing itinerary."""
+6. Return the COMPLETE updated itinerary."""
 
 
 # ── JSON extraction ───────────────────────────────────────────────────────────
@@ -273,16 +233,23 @@ async def generate_trip_itinerary(
         settings.gemini_model, destination, duration, currency, budget,
     )
 
+    from google import genai
+
     response = await client.aio.models.generate_content(
         model=settings.gemini_model,
         contents=prompt,
+        config=genai.types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=GeminiItinerary,
+            temperature=0.2,
+        ),
     )
 
     if not response.text:
         raise ValueError("Gemini returned an empty response")
 
     logger.info("Gemini responded (%d chars) — parsing and validating", len(response.text))
-    raw_data = _extract_json(response.text)
+    raw_data = json.loads(response.text)
     return _validate_itinerary(raw_data, duration, budget)
 
 
@@ -302,14 +269,21 @@ async def refine_trip_itinerary(
 
     logger.info("Calling Gemini for itinerary refinement: %r", instruction[:100])
 
+    from google import genai
+
     response = await client.aio.models.generate_content(
         model=settings.gemini_model,
         contents=prompt,
+        config=genai.types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=GeminiItinerary,
+            temperature=0.2,
+        ),
     )
 
     if not response.text:
         raise ValueError("Gemini returned an empty response for refinement")
 
     logger.info("Gemini refinement responded (%d chars) — parsing and validating", len(response.text))
-    raw_data = _extract_json(response.text)
+    raw_data = json.loads(response.text)
     return _validate_itinerary(raw_data, duration, budget)

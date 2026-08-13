@@ -22,7 +22,7 @@ export function RefinementPanel({ tripId, onRefined }: Props) {
   const [success, setSuccess] = useState(false);
 
   const handleRefine = async () => {
-    if (!instruction.trim()) return;
+    if (!instruction.trim() || loading) return;
     setLoading(true);
     setError(null);
     setSuccess(false);
